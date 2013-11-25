@@ -6,10 +6,13 @@ package edu.gsu.cs.butterfly.exec
  * User: aartsiomenka1
  * Date: 11/22/13
  * Time: 2:17 PM
- * To change this template use File | Settings | File Templates.
+ * Main class for project Butterfly. Execute procedure with clustering
+ * KGEM + ERIF
  */
 object Main {
    def main(args: Array[String]) = {
+     // Preliminary step. Preparing arguments.
+     parseArguments(args)
      preProcessArgs(args)
 
      // Step 1: Align to original references and
@@ -20,9 +23,11 @@ object Main {
      runKgem(processFirstKgemArgs)
 
      // Step 3: Realign all reads to new references
-     // TODO: runErif
+     prepareErifArgsSecond
+     runErif
 
      // Step 4: Final run kGEM in clustering mode
-     // TODO: runKgem
+     prepareKgemSecond
+     runKgem
    }
 }

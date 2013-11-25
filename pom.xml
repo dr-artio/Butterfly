@@ -37,7 +37,7 @@
                     <appendAssemblyId>false</appendAssemblyId>
                     <archive>
                         <manifest>
-                            <mainClass>edu.gsu.cs.kgem.exec.Main</mainClass>
+                            <mainClass>edu.gsu.cs.butterfly.exec.Main</mainClass>
                             <addDefaultImplementationEntries>
                                 true
                             </addDefaultImplementationEntries>

@@ -1,6 +1,6 @@
 package edu.gsu.cs.butterfly
 
-import java.io.File
+import java.io.{FileWriter, File}
 import net.sourceforge.argparse4j.inf.ArgumentParserException
 import net.sourceforge.argparse4j.ArgumentParsers.newArgumentParser
 import edu.gsu.cs.align.io.SAMParser
@@ -11,7 +11,7 @@ import edu.gsu.cs.align.io.SAMParser
  * User: aartsiomenka1
  * Date: 11/22/13
  * Time: 2:27 PM
- * To change this template use File | Settings | File Templates.
+ * Package object hiding all implementation issues.
  */
 package object exec {
   val KEY_PREFIX = "-"
@@ -22,6 +22,7 @@ package object exec {
   val C = "c"
   val BUTTERFLY = "Butterfly"
   val NO_HASHING = "noHashing"
+  val SENSITIVE = "sensitive"
   val KGEM_IN_FILENAME = "aligned_reads.fas"
   val ALIGNED_SAM_FILENAME = "reads.sam"
   val HAPLOTYPES_CLEANED = "haplotypes_cleaned.fas"
@@ -36,20 +37,43 @@ package object exec {
 
   def runErif = {
     if (shared_args != null)
-      edu.gsu.cs.align.exec.Main(indelfixer_args ++ shared_args)
+      edu.gsu.cs.align.exec.Main.main(indelfixer_args ++ shared_args)
     else
-      edu.gsu.cs.align.exec.Main(indelfixer_args)
+      edu.gsu.cs.align.exec.Main.main(indelfixer_args)
   }
 
-  def runKgem = {
+  def runKgem: Unit = {
     runKgem(kgem_args)
   }
 
-  def runKgem(args: Array[String]) = {
-    if (shared_args != null)
-      edu.gsu.cs.kgem.exec.Main(args ++ shared_args)
+  def runKgem(args: Array[String]): Unit = {
+    edu.gsu.cs.kgem.model.KGEM.initThreshold(0)
+    if (shared_args != null){
+      val tmp = args.filter(_ != null) ++ shared_args
+      edu.gsu.cs.kgem.exec.Main.main(tmp)  }
     else
-      edu.gsu.cs.kgem.exec.Main(args)
+      edu.gsu.cs.kgem.exec.Main.main(args)
+  }
+
+  def prepareErifArgsSecond = {
+    val ref = indelfixer_args.indexOf(param_key(REFERENCE))
+    indelfixer_args(ref + 1) = output_dir.getAbsolutePath + File.separator + HAPLOTYPES_CLEANED
+
+    //shared_args(1) += "2" + File.separator
+    indelfixer_args = indelfixer_args.filter(_ != null)
+
+    println()
+  }
+
+  def prepareKgemSecond = {
+    kgem_args(0) = shared_args(1) + KGEM_IN_FILENAME
+    val clustering_params = new Array[String](2)
+    clustering_params(0) = param_key(C)
+
+    val reads = indelfixer_args.indexOf(param_key(READS))
+    clustering_params(1) = indelfixer_args(reads + 1)
+
+    kgem_args = kgem_args.filter(_ != null) ++ clustering_params
   }
 
   /**
@@ -68,23 +92,25 @@ package object exec {
 
     processSharedArgs(args)
     processKgemArgs(args)
-    indelfixer_args = indelfixer_args.filter(_ != null)
-
-    println("Done")
+    indelfixer_args = indelfixer_args.filter(_ != null) :+ param_key(NO_HASHING) :+ param_key(SENSITIVE)
   }
 
   def processFirstKgemArgs = {
     val new_args = new Array[String](kgem_args.length)
     kgem_args.copyToArray(new_args)
 
-    new_args(1) = getNumberOfSubtypes
+    new_args(1) = getNumberOfSubtypes.toString
 
     new_args
   }
 
   private def getNumberOfSubtypes = {
-    val records = SAMParser.readSAMFile(output_dir.getAbsolutePath + File.separator + ALIGNED_SAM_FILENAME)
-    records.map(_.getReferenceName).toSet.size
+    val file = new File(output_dir.getAbsolutePath + File.separator + ALIGNED_SAM_FILENAME)
+    val records = SAMParser.readSAMFile(file)
+    val size = records.map(_.getReferenceName).toSet.size
+    val pw = new FileWriter(file, false)
+    pw.close
+    size
   }
 
   private def processKgemArgs(args: Array[String]) {
@@ -97,6 +123,7 @@ package object exec {
       indelfixer_args(ak) = null
       indelfixer_args(ak + 1) = null
     }
+    kgem_args = kgem_args :+ "-t" :+ "0"
   }
 
   private def handleError(mes: String) {
@@ -135,7 +162,7 @@ package object exec {
   def parseArguments(args: Array[String]) = {
     val parser = newArgumentParser(BUTTERFLY)
       .defaultHelp(true)
-      .description("Clustering procedure wrapper.")
+      .description("Clustering procedure wrapper Butterfly-1.0")
 
     parser.addArgument(param_key(K))
       .dest(K)
