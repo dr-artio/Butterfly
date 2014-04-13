@@ -1,33 +1,19 @@
 package edu.gsu.cs.butterfly.exec
 
+import org.biojava3.core.sequence.io.{FastaWriterHelper, FastaReaderHelper}
+import java.io.File
+import collection.JavaConversions._
+import edu.gsu.cs.butterfly.exec.Muscle.muscle
+
 
 /**
- * Created with IntelliJ IDEA.
- * User: aartsiomenka1
- * Date: 11/22/13
- * Time: 2:17 PM
- * Main class for project Butterfly. Execute procedure with clustering
- * KGEM + ERIF
+ * Butterfly tool main class
+ * Tool is created for performing
+ * k-medoid algorithm based on kGEM
  */
 object Main {
    def main(args: Array[String]) = {
-     // Preliminary step. Preparing arguments.
-     parseArguments(args)
-     preProcessArgs(args)
-
-     // Step 1: Align to original references and
-     // prepare to build new ones.
-     runErif
-
-     // Step 2: Build new references with kGEM
-     runKgem(processFirstKgemArgs)
-
-     // Step 3: Realign all reads to new references
-     prepareErifArgsSecond
-     runErif
-
-     // Step 4: Final run kGEM in clustering mode
-     prepareKgemSecond
-     runKgem
+     val reads = FastaReaderHelper.readFastaDNASequence(new File("simPool2.fas")).values()
+     FastaWriterHelper.writeNucleotideSequence(new File("aligned.fas"), muscle(reads, 1))
    }
 }

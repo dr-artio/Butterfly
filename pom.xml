@@ -33,7 +33,7 @@
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
-                    <!-- <finalName>k-gem</finalName> -->
+                    <!-- <finalName>butterfly</finalName> -->
                     <appendAssemblyId>false</appendAssemblyId>
                     <archive>
                         <manifest>
@@ -84,24 +84,34 @@
 
     <dependencies>
         <dependency>
-            <groupId>edu.gsu.cs</groupId>
-            <artifactId>kgem</artifactId>
-            <version>0.4.2</version>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.10.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-compiler</artifactId>
+            <version>2.10.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.biojava</groupId>
+            <artifactId>biojava3-core</artifactId>
+            <version>3.0.5</version>
         </dependency>
         <dependency>
             <groupId>edu.gsu.cs</groupId>
-            <artifactId>erif</artifactId>
-            <version>1.0</version>
+            <artifactId>kgem</artifactId>
+            <version>0.6</version>
         </dependency>
         <dependency>
             <groupId>org.utgenome.thirdparty</groupId>
             <artifactId>picard</artifactId>
-            <version>1.86.0</version>
+            <version>1.102.0</version>
         </dependency>
         <dependency>
             <groupId>net.sourceforge.argparse4j</groupId>
             <artifactId>argparse4j</artifactId>
-            <version>0.4.1</version>
+            <version>0.4.3</version>
         </dependency>
     </dependencies>
     <pluginRepositories>
