@@ -1,8 +1,10 @@
 package edu.gsu.cs.butterfly.exec
 
-import scala.collection.mutable.{ListBuffer, Map, HashMap}
+import scala.collection.parallel.mutable.{ParMap, ParHashMap}
 import org.biojava3.core.sequence.DNASequence
 import java.util.logging.{Level, Logger}
+import scala.collection.mutable.{HashMap, ListBuffer}
+import edu.gsu.cs.kgem.exec.log
 
 /**
  * Initial seed finder for clustering
@@ -24,12 +26,16 @@ trait SeedFinder {
   def getKSeeds(first: DNASequence, all: Iterable[DNASequence], k: Int) = {
     val seeds = new ListBuffer[DNASequence]()
     seeds += first
-    val m = all.map(x => (x, distance(first, x))).toMap
-    val distanceMap = Map(m.toSeq: _*)
+    log("Intitial distance map started...")
+    val m = all.par.map(x => (x, distance(first, x))).seq.toMap
+    log("Initial distance map computed.")
+    val distanceMap = ParHashMap(m.toSeq: _*)
     while (seeds.size < k) {
+      log("Iteration...")
       val next = distanceMap.maxBy(_._2)._1
-      for (key <- distanceMap.keySet) distanceMap(key) = Math.min(distanceMap(key), distance(next, key))
+      for (key <- distanceMap.keySet.par) distanceMap(key) = Math.min(distanceMap(key), distance(next, key))
       seeds += next
+      log("Iteration done")
     }
     seeds.toList
   }

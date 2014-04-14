@@ -39,7 +39,7 @@ object AlignmentSeedFinder extends SeedFinder {
     val alignment = align(seq1, seq2, matrix, gap_open, gap_extend)
     val dist = alignment.getMarkupLine.count(_ != MATCH)
     cache.put((arg1, arg2), dist)
-    cache.put((arg2, arg2), dist)
+    cache.put((arg2, arg1), dist)
     return dist
   }
 }
