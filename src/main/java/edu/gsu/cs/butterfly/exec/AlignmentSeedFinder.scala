@@ -32,14 +32,10 @@ object AlignmentSeedFinder extends SeedFinder {
   }
 
   def distance(arg1: String, arg2: String): Int = {
-    if (cache contains (arg1, arg2)) return cache((arg1,arg2))
-
     val seq1 = toSequence(arg1)
     val seq2 = toSequence(arg2)
     val alignment = align(seq1, seq2, matrix, gap_open, gap_extend)
     val dist = alignment.getMarkupLine.count(_ != MATCH)
-    cache.put((arg1, arg2), dist)
-    cache.put((arg2, arg1), dist)
     return dist
   }
 }

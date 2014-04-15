@@ -1,10 +1,9 @@
 package edu.gsu.cs.butterfly.exec
 
-import scala.collection.parallel.mutable.{ParMap, ParHashMap}
 import org.biojava3.core.sequence.DNASequence
-import java.util.logging.{Level, Logger}
 import scala.collection.mutable.{HashMap, ListBuffer}
 import edu.gsu.cs.kgem.exec.log
+import edu.gsu.cs.kgem.io.OutputHandler.{mean, sigma}
 
 /**
  * Initial seed finder for clustering
@@ -16,32 +15,44 @@ import edu.gsu.cs.kgem.exec.log
  * Strings
  */
 trait SeedFinder {
-  protected val cache = new HashMap[(String, String), Int]()
+  protected var cluster_map: HashMap[DNASequence, DNASequence] = null
 
   def distance(arg1: String, arg2: String): Int
   def distance(seq1: DNASequence, seq2: DNASequence) : Int = {
     distance(seq1.getSequenceAsString, seq2.getSequenceAsString)
   }
 
-  def getKSeeds(first: DNASequence, all: Iterable[DNASequence], k: Int) = {
-    val seeds = new ListBuffer[DNASequence]()
-    seeds += first
-    log("Intitial distance map started...")
-    val m = all.par.map(x => (x, distance(first, x))).seq.toMap
-    log("Initial distance map computed.")
-    val distanceMap = ParHashMap(m.toSeq: _*)
-    while (seeds.size < k) {
-      log("Iteration...")
+  def initKClusterMap(first: DNASequence, all: Iterable[DNASequence], k: Int) = {
+    log("Initial distance map started...")
+    var m = all.map(x => (x, distance(first, x)))
+    val vals = m.view.map(_._2)
+    val avg = mean[Int](vals)
+    val sgm = sigma[Int](vals)
+    m = m.filter(_._2 <= avg + sgm)
+    val filtered_all = m.view.map(_._1)
+    log("Initial distance map computed. Size: %d".format(m.size))
+    val distanceMap = HashMap(m.toMap.toSeq: _*)
+    cluster_map = HashMap(filtered_all.map(x => (x, first)).toSeq: _*)
+    var i = 1
+    while (i < k) {
+      log("Iteration %d ...".format(i))
       val next = distanceMap.maxBy(_._2)._1
-      for (key <- distanceMap.keySet.par) distanceMap(key) = Math.min(distanceMap(key), distance(next, key))
-      seeds += next
-      log("Iteration done")
+      log("MaxBy done.")
+      filtered_all foreach (key =>  {
+        val dist = distance(next, key)
+        val cur = distanceMap(key)
+        if (dist < cur) {
+          cluster_map(key) = next
+          distanceMap(key) = dist
+        }
+      })
+      log("Iteration %d done".format(i))
+      i += 1
     }
-    seeds.toList
   }
 
   def getKClusters(first: DNASequence, all: Iterable[DNASequence], k: Int) = {
-    val seeds = getKSeeds(first, all, k)
-    all.groupBy(s => seeds.minBy(g => distance(g, s)))
+    initKClusterMap(first, all, k)
+    cluster_map.keySet.groupBy(s => cluster_map(s))
   }
 }

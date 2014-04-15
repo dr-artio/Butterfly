@@ -33,7 +33,7 @@ package object exec {
     log("Files were read.")
 
     log("Clustering started...")
-    val clusters = AlignmentSeedFinder.getKClusters(ref, reads, k)
+    val clusters = UkkonenSeedFinder.getKClusters(ref, reads, k)
     var t = 0;
 
     log("Clustering finished.")
