@@ -3,7 +3,7 @@ package edu.gsu.cs.butterfly
 import java.io.File
 import net.sourceforge.argparse4j.inf.ArgumentParserException
 import net.sourceforge.argparse4j.ArgumentParsers.newArgumentParser
-import org.biojava3.core.sequence.io.FastaReaderHelper
+import org.biojava3.core.sequence.io.{FastaWriterHelper, FastaReaderHelper}
 import collection.JavaConversions._
 import edu.gsu.cs.kgem.exec.log
 
@@ -19,6 +19,7 @@ package object exec {
   private val USER_DIR = "user.dir"
   protected[exec] val DEFAULT_OUT = new File(System.getProperty(USER_DIR) + "/haplotypes.fas")
   protected[exec] val BUTTERFLY = "Butterfly v.%s amplicon error correction based on kGEM"
+  protected[exec] val NAME = "butterfly"
 
   private var output_file: File = null
   private var reads_file: File = null
@@ -38,7 +39,8 @@ package object exec {
 
     log("Clustering finished.")
     for (i <- clusters){
-      log(i._2.size.toString)
+      val rad = i._2.view.map(x => UkkonenSeedFinder.distance(x, i._1)).max
+      log("Size: %d -> radius: %d".format(i._2.size, rad))
       //       val aligned_reads = muscle(i._2).toList
       //       val hapls = edu.gsu.cs.kgem.exec.executeKgem(aligned_reads, 5, 3, 0.04, 0.01)
       //       val fasta_hapls = hapls.sortBy(-_.freq).map(s => {
@@ -46,8 +48,8 @@ package object exec {
       //         dna.setOriginalHeader("h_freq=%.5f".format(s.freq))
       //         dna
       //       })
-      //       FastaWriterHelper.writeNucleotideSequence(new File("cluster" + t + ".fas"), fasta_hapls)
-      //       t += 1
+             FastaWriterHelper.writeNucleotideSequence(new File(output_file.getAbsolutePath + t + ".fas"), i._2)
+             t += 1
     }
     log("Finished!")
   }
@@ -71,13 +73,12 @@ package object exec {
   private def param_metavar(str: String) = str.toUpperCase
 
   def parseArguments(args: Array[String]) = {
-    val parser = newArgumentParser(BUTTERFLY)
+    val parser = newArgumentParser(NAME)
       .defaultHelp(true)
       .description(BUTTERFLY.format(Main.getClass.getPackage.getImplementationVersion))
 
     parser.addArgument(param_key(K_PARAM))
       .dest(K_PARAM)
-      .setDefault[Integer](-1)
       .metavar(param_metavar(K_PARAM))
       .`type`(classOf[Integer])
       .help("Number of initial seeds (clusters).")
@@ -102,6 +103,8 @@ package object exec {
 
     try {
       val n = parser.parseArgs(args)
+      if (n.get(K_PARAM) == null || n.get(INPUT_PARAM) == null) throw new ArgumentParserException(
+      "Mandatory parameters are missing! -k and -in", parser)
       k = n.getInt(K_PARAM)
       if (k < 0) throw new ArgumentParserException(
         "Number of samples in pool is mandatory (Parameter: %s > 0)".format(K_PARAM), parser)
@@ -116,7 +119,7 @@ package object exec {
       else
         output_file = n.get(OUTPUT_PARAM).asInstanceOf[File]
 
-      setupOutputDir(output_file.getParentFile)
+      setupOutputDir(output_file.getAbsoluteFile.getParentFile)
 
       reads_file = n.get(INPUT_PARAM).asInstanceOf[File]
 

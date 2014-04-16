@@ -30,7 +30,7 @@ trait SeedFinder {
     val sgm = sigma[Int](vals)
     m = m.filter(_._2 <= avg + sgm)
     val filtered_all = m.view.map(_._1)
-    log("Initial distance map computed. Size: %d".format(m.size))
+    log("Initial distance map computed. Size: %d. Radius: %.2f".format(m.size, avg + sgm))
     val distanceMap = HashMap(m.toMap.toSeq: _*)
     cluster_map = HashMap(filtered_all.map(x => (x, first)).toSeq: _*)
     var i = 1

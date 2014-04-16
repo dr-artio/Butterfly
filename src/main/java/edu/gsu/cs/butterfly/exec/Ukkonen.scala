@@ -29,7 +29,7 @@ final object Ukkonen {
   private val BIG_NEGATIVE: Int = -10
 
   def editCost(arg1: String, arg2: String): Int = {
-    new Ukkonen().editCost(arg1, arg2)
+    new Ukkonen().editCost(arg1, arg2) - Math.abs(arg1.length - arg2.length)
   }
 
   final class Ukkonen {
