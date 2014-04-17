@@ -31,6 +31,7 @@ package object exec {
     log("Reading input files...")
     val reads = FastaReaderHelper.readFastaDNASequence(reads_file).values()
     val ref = FastaReaderHelper.readFastaDNASequence(reference_file).values().head
+    log(ref.getOriginalHeader)
     log("Files were read.")
 
     log("Clustering started...")

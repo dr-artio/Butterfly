@@ -24,13 +24,13 @@ trait SeedFinder {
 
   def initKClusterMap(first: DNASequence, all: Iterable[DNASequence], k: Int) = {
     log("Initial distance map started...")
-    var m = all.map(x => (x, distance(first, x)))
+    val m = all.map(x => (x, distance(first, x)))
     val vals = m.view.map(_._2)
     val avg = mean[Int](vals)
     val sgm = sigma[Int](vals)
-    m = m.filter(_._2 <= avg + sgm)
+    //m = m.filter(_._2 <= avg + 2*sgm)
     val filtered_all = m.view.map(_._1)
-    log("Initial distance map computed. Size: %d. Radius: %.2f".format(m.size, avg + sgm))
+    log("Initial distance map computed. Size: %d. Radius: %d".format(m.size, m.view.map(_._2).max))
     val distanceMap = HashMap(m.toMap.toSeq: _*)
     cluster_map = HashMap(filtered_all.map(x => (x, first)).toSeq: _*)
     var i = 1

@@ -82,6 +82,14 @@
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <id>conf</id>
+            <build>
+                <directory>W:\home\code\Butterfly</directory>
+            </build>
+        </profile>
+    </profiles>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
