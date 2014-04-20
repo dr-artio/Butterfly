@@ -6,6 +6,8 @@ import net.sourceforge.argparse4j.ArgumentParsers.newArgumentParser
 import org.biojava3.core.sequence.io.{FastaWriterHelper, FastaReaderHelper}
 import collection.JavaConversions._
 import edu.gsu.cs.kgem.exec.log
+import edu.gsu.cs.butterfly.exec.HammingDistanceSeedFinder.{getKClusters, distance}
+import org.biojava3.core.sequence.DNASequence
 
 /**
  * Package object hiding all implementation issues.
@@ -26,21 +28,61 @@ package object exec {
   private var reference_file: File = null
   private var k = 0
 
+  def test = {
+    println(distance("AAACCTG", "AAC"))
+    println(distance("ATG", "AATCCGC"))
+  }
+
+
+  def findMostLikelySeq = {
+    log("Reading input files...")
+    val reads = FastaReaderHelper.readFastaDNASequence(reads_file).values()
+    val ref = FastaReaderHelper.readFastaDNASequence(reference_file).values().head
+    log("Files were read.")
+    val map = reads.map(x => (x, reads.view.filter(y => distance(x, y) <=k)))
+  }
+
+  def extractByLen(min: Int = 0, max: Int = Int.MaxValue) = {
+    log("Reading input files...")
+    val reads = FastaReaderHelper.readFastaDNASequence(reads_file).values()
+    val ref = FastaReaderHelper.readFastaDNASequence(reference_file).values().head
+    log("Files were read.")
+    log("Size: %d".format(reads.size))
+    val freads = reads.filter(x => x.getLength >= min && x.getLength <= max).toList
+    log("Filtered size: %d".format(freads.size))
+    log("Max lens: %s".format(freads.map(_.getLength).sorted.takeRight(10)))
+    FastaWriterHelper.writeNucleotideSequence(new File(output_file.getAbsolutePath), freads)
+  }
+
+  def split = {
+    log("Reading input files...")
+    val reads = FastaReaderHelper.readFastaDNASequence(reads_file).values()
+    val ref = FastaReaderHelper.readFastaDNASequence(reference_file).values().head
+    log("Files were read.")
+    val freads = reads.filter(_.getLength > 0.95 * ref.getLength)
+    log("Filtered reads: %d".format(freads.size))
+    val in = freads.filter(x => distance(x, ref) < k)
+    val out = freads.filter(x => distance(x, ref) >= k)
+    log("In size: %d out size: %d".format(in.size, out.size))
+    FastaWriterHelper.writeNucleotideSequence(new File(output_file.getAbsolutePath + "_in.fas"), in)
+    FastaWriterHelper.writeNucleotideSequence(new File(output_file.getAbsolutePath + "_out.fas"), out)
+  }
 
   def run = {
     log("Reading input files...")
     val reads = FastaReaderHelper.readFastaDNASequence(reads_file).values()
     val ref = FastaReaderHelper.readFastaDNASequence(reference_file).values().head
+    log("%s".format(reads.map(_.getLength).toSet))
     log(ref.getOriginalHeader)
     log("Files were read.")
 
     log("Clustering started...")
-    val clusters = UkkonenSeedFinder.getKClusters(ref, reads, k)
-    var t = 0;
+    val clusters = getKClusters(ref, reads, k)
+    var t = 0
 
     log("Clustering finished.")
     for (i <- clusters){
-      val rad = i._2.view.map(x => UkkonenSeedFinder.distance(x, i._1)).max
+      val rad = i._2.view.map(x => distance(x, i._1)).max
       log("Size: %d -> radius: %d".format(i._2.size, rad))
       //       val aligned_reads = muscle(i._2).toList
       //       val hapls = edu.gsu.cs.kgem.exec.executeKgem(aligned_reads, 5, 3, 0.04, 0.01)
@@ -49,8 +91,15 @@ package object exec {
       //         dna.setOriginalHeader("h_freq=%.5f".format(s.freq))
       //         dna
       //       })
-             FastaWriterHelper.writeNucleotideSequence(new File(output_file.getAbsolutePath + t + ".fas"), i._2)
-             t += 1
+      //i._1.setOriginalHeader("%s_size_%d".format(i._1.getOriginalHeader, i._2.size))
+      FastaWriterHelper.writeNucleotideSequence(new File(output_file.getAbsolutePath + t +"size_" + i._2.size + ".fas"), List(i._1))
+      val reads = i._2.map(x => {
+        val seq = new DNASequence(x.getSequenceAsString.replaceAll("N", "").replaceAll("-",""))
+        seq.setOriginalHeader(x.getOriginalHeader)
+        seq
+      })
+      FastaWriterHelper.writeNucleotideSequence(new File(output_file.getAbsolutePath + t + ".fas"), reads)
+      t += 1
     }
     log("Finished!")
   }
@@ -124,7 +173,7 @@ package object exec {
 
       reads_file = n.get(INPUT_PARAM).asInstanceOf[File]
 
-      reference_file = n.get(INPUT_PARAM).asInstanceOf[File]
+      reference_file = n.get(REF_PARAM).asInstanceOf[File]
     } catch {
       case e: ArgumentParserException => {
         parser.handleError(e)

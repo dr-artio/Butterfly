@@ -9,6 +9,7 @@ package edu.gsu.cs.butterfly.exec
 object Main {
    def main(args: Array[String]) = {
      parseArguments(args)
+     //test
      run
    }
 }
