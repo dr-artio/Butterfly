@@ -1,4 +1,4 @@
-package edu.gsu.cs.butterfly.exec
+package edu.gsu.cs.butterfly.model
 
 /**
  * Created by aartsiomenka1 on 4/19/14.

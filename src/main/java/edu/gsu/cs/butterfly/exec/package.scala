@@ -6,7 +6,8 @@ import net.sourceforge.argparse4j.ArgumentParsers.newArgumentParser
 import org.biojava3.core.sequence.io.{FastaWriterHelper, FastaReaderHelper}
 import collection.JavaConversions._
 import edu.gsu.cs.kgem.exec.log
-import edu.gsu.cs.butterfly.exec.HammingDistanceSeedFinder.{getKClusters, distance}
+import edu.gsu.cs.butterfly.model.HammingDistanceSeedFinder
+import HammingDistanceSeedFinder.{getKClusters, distance}
 import org.biojava3.core.sequence.DNASequence
 
 /**

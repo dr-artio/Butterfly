@@ -1,9 +1,8 @@
-package edu.gsu.cs.butterfly.exec
+package edu.gsu.cs.butterfly.model
 
+import scala.collection.mutable.HashMap
 import org.biojava3.core.sequence.DNASequence
-import scala.collection.mutable.{HashMap, ListBuffer}
-import edu.gsu.cs.kgem.exec.log
-import edu.gsu.cs.kgem.io.OutputHandler.{mean, sigma}
+import edu.gsu.cs.kgem.exec._
 
 /**
  * Initial seed finder for clustering

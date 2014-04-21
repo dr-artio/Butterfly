@@ -1,4 +1,4 @@
-package edu.gsu.cs.butterfly.exec
+package edu.gsu.cs.butterfly.model
 
 /**
  * Seed finder based on edit distance

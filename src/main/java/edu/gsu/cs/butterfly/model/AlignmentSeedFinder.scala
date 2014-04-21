@@ -1,12 +1,9 @@
-package edu.gsu.cs.butterfly.exec
+package edu.gsu.cs.butterfly.model
 
-import jaligner.matrix.Matrix
-import jaligner.matrix.MatrixLoader
 import java.util.logging.{Level, Logger}
+import jaligner.matrix.{MatrixLoader, Matrix}
 import jaligner.Sequence
-import jaligner.SmithWatermanGotoh.align
-import collection.JavaConversions._
-
+import jaligner.SmithWatermanGotoh._
 
 /**
  * Alignment distance implementation for

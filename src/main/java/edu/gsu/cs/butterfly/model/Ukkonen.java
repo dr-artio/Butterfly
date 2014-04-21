@@ -1,4 +1,4 @@
-package edu.gsu.cs.butterfly.exec;
+package edu.gsu.cs.butterfly.model;
 
 /*
  * Copyright (c) David Powell <david@drp.id.au>
