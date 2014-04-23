@@ -34,7 +34,8 @@ trait SeedFinder {
     val filtered_all = m.view.map(_._1)
     log("Initial distance map computed. Size: %d. Radius: %d".format(m.size, m.view.map(_._2).max))
     val distanceMap = HashMap(m.toMap.toSeq: _*)
-    cluster_map = new ChainHashMap(HashMap(filtered_all.map(x => (x, (f, distanceMap(x)))).toSeq: _*))
+    cluster_map = new ChainHashMap(filtered_all.map(x => (x, (f, distanceMap(x)))).toSeq,
+      (v1: (DNASequence, Int), v2: (DNASequence, Int)) => v1._2.compareTo(v2._2))
     var i = 1
     while (i < k) {
       log("Iteration %d ...".format(i))
@@ -43,8 +44,8 @@ trait SeedFinder {
       filtered_all foreach (key =>  {
         val dist = distance(next, key)
         val cur = distanceMap(key)
+        cluster_map(key) = (next, dist)
         if (dist < cur) {
-          cluster_map(key) = (next, dist)
           distanceMap(key) = dist
         }
       })
