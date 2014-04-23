@@ -1,15 +1,13 @@
 package edu.gsu.cs.butterfly.model
 
 import java.util.NoSuchElementException
-
-import scala.collection.SeqView
 import scala.collection.mutable.HashMap
 
 /**
  * Created by Alexander Artyomenko on 4/22/14.
  */
 class ChainHashMap[K, V](compare: (V, V) => Int) {
-  private val hashMap = new HashMap[K, SeqView[V, Seq[V]]]()
+  private val hashMap = new HashMap[K, Stream[V]]()
   private val ord = new Ordering[V] {
     override def compare(v1: V, v2: V): Int = {
       this.compare(v1, v2)
@@ -22,15 +20,16 @@ class ChainHashMap[K, V](compare: (V, V) => Int) {
   }
 
   def apply(key: K): V = {
-    if (!(hashMap.keySet contains key) || hashMap.apply(key).size < 1)
+    if (!(hashMap.keySet contains key) || hashMap(key).size < 1)
       throw new NoSuchElementException("key: %s not found".format(key))
-    hashMap.apply(key).head
+    hashMap(key).head
   }
 
   def put(key: K, value: V) = {
     if (!(hashMap.keySet contains key))
-      hashMap.put(key, Seq[V]().view)
-    hashMap(key) = (value +: hashMap(key)).sorted(ord)
+      hashMap.put(key, Stream[V](value))
+    else
+      hashMap(key) = (value #:: hashMap(key)).sorted(ord)
   }
 
   def getNth(key: K, i: Int): Option[V] = {
