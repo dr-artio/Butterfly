@@ -40,7 +40,6 @@ trait SeedFinder {
     while (i < k) {
       log("Iteration %d ...".format(i))
       val next = distanceMap.maxBy(_._2)._1
-      log("MaxBy done.")
       filtered_all foreach (key =>  {
         val dist = distance(next, key)
         val cur = distanceMap(key)

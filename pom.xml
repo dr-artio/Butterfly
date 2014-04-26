@@ -44,7 +44,7 @@
                         <jvmArg>-Xms1024m</jvmArg>
                         <jvmArg>-Xmx1g</jvmArg>
                     </jvmArgs>
-                    <sourceDir>src</sourceDir>
+                    <sourceDir>src/main/java</sourceDir>
                 </configuration>
             </plugin>
         </plugins>
@@ -99,7 +99,7 @@
                         <version>1.7</version>
                         <executions>
                             <execution>
-                                <phase>package</phase>
+                                <phase>compile</phase>
                                 <configuration>
                                     <target>
                                         <exec
@@ -127,12 +127,12 @@
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
-            <version>2.10.3</version>
+            <version>2.11.0</version>
         </dependency>
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-compiler</artifactId>
-            <version>2.10.3</version>
+            <version>2.11.0</version>
         </dependency>
         <dependency>
             <groupId>org.biojava</groupId>
