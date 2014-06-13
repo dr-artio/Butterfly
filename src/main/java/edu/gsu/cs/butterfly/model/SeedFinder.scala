@@ -1,8 +1,9 @@
 package edu.gsu.cs.butterfly.model
 
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.{ListBuffer, HashMap}
 import org.biojava3.core.sequence.DNASequence
 import edu.gsu.cs.kgem.exec._
+import edu.gsu.cs.kgem.model.KGEM
 
 /**
  * Initial seed finder for clustering
@@ -19,6 +20,13 @@ trait SeedFinder {
   def distance(arg1: String, arg2: String): Int
   def distance(seq1: DNASequence, seq2: DNASequence) : Int = {
     distance(seq1.getSequenceAsString, seq2.getSequenceAsString)
+  }
+
+  def outErrorRates(first: DNASequence, all: Iterable[DNASequence]) = {
+    val vals = all.map(x => distance(first, x))
+    val lens = all.map(_.getLength)
+    log("Errors #: %d".format(vals.sum / vals.size))
+    log("Avg len: %d".format(lens.sum / lens.size))
   }
 
   def initKClusterMap(first: DNASequence, all: Iterable[DNASequence], k: Int) = {
@@ -40,14 +48,7 @@ trait SeedFinder {
     while (i < k) {
       log("Iteration %d ...".format(i))
       val next = distanceMap.maxBy(_._2)._1
-      filtered_all foreach (key =>  {
-        val dist = distance(next, key)
-        val cur = distanceMap(key)
-        cluster_map(key) = (next, dist)
-        if (dist < cur) {
-          distanceMap(key) = dist
-        }
-      })
+      updateClusterMap(filtered_all, distanceMap, next)
       log("Iteration %d done".format(i))
       i += 1
     }
@@ -56,5 +57,61 @@ trait SeedFinder {
   def getKClusters(first: DNASequence, all: Iterable[DNASequence], k: Int) = {
     initKClusterMap(first, all, k)
     cluster_map.keySet.groupBy(s => cluster_map(s)._1)
+  }
+
+  def getClusters(seqs: Iterable[DNASequence], k: Int) = {
+    expansion(seqs, k)
+    cluster_map.keySet.groupBy(s => cluster_map(s)._1)
+  }
+
+  def expansion(seqs: Iterable[DNASequence], k: Int) = {
+    val candidates = new ListBuffer[DNASequence]()
+
+    val parseqs = seqs.par
+    parseqs.tasksupport = edu.gsu.cs.butterfly.exec.getNumProc
+
+    val kgem = doKgem(seqs, k)
+    val threshold = KGEM.threshold
+
+    val first = kgem.head
+    candidates += first
+    val distanceMap = HashMap(seqs.map(x => (x, distance(x, first))).toMap.toSeq: _*)
+    cluster_map = new ChainHashMap(seqs.map(x => (x, (first, distanceMap(x)))).toSeq,
+      (v1: (DNASequence, Int), v2: (DNASequence, Int)) => v1._2.compareTo(v2._2))
+    var cluster: Iterable[DNASequence] = null
+    do {
+      cluster = seqs.view.map(next => cluster_map.keySet.filter(x => distance(x, next) < distanceMap(x))).maxBy(_.size)
+      val size = cluster.size
+      if (size >= threshold) {
+        val kgem = doKgem(cluster, 1)
+        val kg = kgem.head
+        candidates += kg
+        updateClusterMap(seqs, distanceMap, kg)
+      }
+    } while (cluster.size >= threshold)
+    //candidates.toList
+  }
+
+  private def doKgem(reads: Iterable[DNASequence], k: Int) = {
+    executeKgem(reads.toList, k, edu.gsu.cs.butterfly.exec.getNumProc).map(x => {
+      val dna = new DNASequence(x.toIntegralString)
+      dna.setOriginalHeader("h%d_f_%.2f".format(x.ID, x.freq))
+      dna
+    }).toList
+  }
+
+  private def updateClusterMap(seqs: Iterable[DNASequence], distanceMap: HashMap[DNASequence, Int], next: DNASequence) {
+    seqs foreach (s => {
+      val dist = distance(next, s)
+      val cur = distanceMap(s)
+      cluster_map(s) = (next, dist)
+      if (dist < cur) {
+        distanceMap(s) = dist
+      }
+    })
+  }
+
+  def expandStep(candidates: Iterable[DNASequence]) = {
+
   }
 }
