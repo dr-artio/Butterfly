@@ -97,7 +97,7 @@ package object exec {
 
     log("Clustering finished.")
     val out = new File(output_file.getAbsolutePath)
-    val haplotypes = new ListBuffer[DNASequence]()
+    val haplotypes = new ListBuffer[(Double, DNASequence)]()
     val gl_size = reads.size.toDouble
 
     for (i <- clusters){
@@ -105,13 +105,14 @@ package object exec {
       log("Size: %d -> radius: %d".format(i._2.size, rad))
 
       val hapl = new DNASequence(i._1.getSequenceAsString.replaceAll("N", "").replaceAll("-",""))
-      hapl.setOriginalHeader("haplotype%d_f=%.2f%%".format(t, i._2.size / gl_size * 100))
+      val f = (i._2.size.toDouble / gl_size) * 100
+      hapl.setOriginalHeader("haplotype%d_f=%.2f%%".format(t, f))
 
-      haplotypes += hapl
+      haplotypes += ((f, hapl))
 
       t += 1
     }
-    FastaWriterHelper.writeNucleotideSequence(out, haplotypes)
+    FastaWriterHelper.writeNucleotideSequence(out, haplotypes.sortBy(-_._1).map(_._2))
     log("Finished!")
   }
 
@@ -163,18 +164,21 @@ package object exec {
       .help("Output file path.")
 
     try {
+      var np = Runtime.getRuntime.availableProcessors()
       val n = parser.parseArgs(args)
       if (n.get(K_PARAM) == null || n.get(INPUT_PARAM) == null) throw new ArgumentParserException(
-      "Mandatory parameters are missing! -k and -in", parser)
+      "Mandatory parameters are missing! -k or -in", parser)
       k = n.getInt(K_PARAM)
       if (k < 0) throw new ArgumentParserException(
         "Number of samples in pool is mandatory (Parameter: %s > 0)".format(K_PARAM), parser)
       if (!n.get(INPUT_PARAM).isInstanceOf[File])
         throw new ArgumentParserException(
           "Filename with reads is wrong (Parameter: %s)".format(INPUT_PARAM), parser)
-      if (!n.get( NUMPROC_PARAM).isInstanceOf[Integer])
-        throw new ArgumentParserException(
-          "Filename with references is wrong (Parameter: %s)".format( NUMPROC_PARAM), parser)
+      if (n.get(NUMPROC_PARAM) == null || !n.get(NUMPROC_PARAM).isInstanceOf[Integer]) {
+        log("Numproc is not set or incorrect. Default value is: %d".format(np))
+      } else {
+        np = n.getInt(NUMPROC_PARAM)
+      }
       if (!n.get(OUTPUT_PARAM).isInstanceOf[File])
         output_file = DEFAULT_OUT
       else
@@ -184,7 +188,7 @@ package object exec {
 
       reads_file = n.get(INPUT_PARAM).asInstanceOf[File]
 
-      numproc = new ForkJoinTaskSupport(new ForkJoinPool(n.getInt(NUMPROC_PARAM)))
+      numproc = new ForkJoinTaskSupport(new ForkJoinPool(np))
     } catch {
       case e: ArgumentParserException => {
         parser.handleError(e)

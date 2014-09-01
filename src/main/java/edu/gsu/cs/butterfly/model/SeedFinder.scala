@@ -1,9 +1,10 @@
 package edu.gsu.cs.butterfly.model
 
-import scala.collection.mutable.{ListBuffer, HashMap}
-import org.biojava3.core.sequence.DNASequence
 import edu.gsu.cs.kgem.exec._
 import edu.gsu.cs.kgem.model.KGEM
+import org.biojava3.core.sequence.DNASequence
+
+import scala.collection.mutable.{HashMap, ListBuffer}
 
 /**
  * Initial seed finder for clustering
@@ -16,6 +17,7 @@ import edu.gsu.cs.kgem.model.KGEM
  */
 trait SeedFinder {
   protected var cluster_map: ChainHashMap[DNASequence, (DNASequence, Int)] = null
+  protected var used_reads_map: HashMap[DNASequence, Boolean] = null
 
   def distance(arg1: String, arg2: String): Int
   def distance(seq1: DNASequence, seq2: DNASequence) : Int = {
@@ -29,9 +31,9 @@ trait SeedFinder {
     log("Avg len: %d".format(lens.sum / lens.size))
   }
 
-  def initKClusterMap(first: DNASequence, all: Iterable[DNASequence], k: Int) = {
+  protected def initKClusterMap(first: DNASequence, all: Iterable[DNASequence], k: Int) = {
     log("Initial distance map started...")
-    var m = all.filter(_.getLength > 0.97 * first.getLength).map(x => (x, distance(first, x)))
+    var m = all.map(x => (x, distance(first, x)))
     log("Filtered reads #: %d out of %d".format(m.size, all.size))
     val f = m.maxBy(_._2)._1
     log(f.getOriginalHeader)
@@ -64,8 +66,9 @@ trait SeedFinder {
     cluster_map.keySet.groupBy(s => cluster_map(s)._1)
   }
 
-  def expansion(seqs: Iterable[DNASequence], k: Int) = {
+  protected def expansion(seqs: Iterable[DNASequence], k: Int) = {
     val candidates = new ListBuffer[DNASequence]()
+    used_reads_map =  HashMap(seqs.map(x => (x, false)).toMap.toSeq: _*)
 
     val parseqs = seqs.par
     parseqs.tasksupport = edu.gsu.cs.butterfly.exec.getNumProc
@@ -79,20 +82,27 @@ trait SeedFinder {
     cluster_map = new ChainHashMap(seqs.map(x => (x, (first, distanceMap(x)))).toSeq,
       (v1: (DNASequence, Int), v2: (DNASequence, Int)) => v1._2.compareTo(v2._2))
     var cluster: Iterable[DNASequence] = null
-    do {
-      cluster = seqs.view.map(next => cluster_map.keySet.filter(x => distance(x, next) < distanceMap(x))).maxBy(_.size)
-      val size = cluster.size
-      if (size >= threshold) {
-        val kgem = doKgem(cluster, 1)
-        val kg = kgem.head
-        candidates += kg
-        updateClusterMap(seqs, distanceMap, kg)
+    for (seq <- parseqs) {
+      if (!used_reads_map(seq)) {
+        cluster = cluster_map.keySet.filter(x => distance(x, seq) < distanceMap(x))
+        val size = cluster.size
+        if (size >= threshold) {
+          val kgem = doKgem(cluster, 1)
+          val kg = kgem.head
+          if (candidates.exists(_.getSequenceAsString.equals(kg.getSequenceAsString))) synchronized {
+            cluster.foreach(x => used_reads_map(x) = true)
+            log("Used size: %d".format(size))
+            log("Active reads left: %d".format(used_reads_map.values.count(!_)))
+          }
+          candidates += kg
+          updateClusterMap(seqs, distanceMap, kg)
+        }
       }
-    } while (cluster.size >= threshold)
+    } //while (cluster.size >= threshold)
     //candidates.toList
   }
 
-  private def doKgem(reads: Iterable[DNASequence], k: Int) = {
+  private def doKgem(reads: Iterable[DNASequence], k: Int) = synchronized {
     executeKgem(reads.toList, k, edu.gsu.cs.butterfly.exec.getNumProc).map(x => {
       val dna = new DNASequence(x.toIntegralString)
       dna.setOriginalHeader("h%d_f_%.2f".format(x.ID, x.freq))
@@ -100,7 +110,9 @@ trait SeedFinder {
     }).toList
   }
 
-  private def updateClusterMap(seqs: Iterable[DNASequence], distanceMap: HashMap[DNASequence, Int], next: DNASequence) {
+  private def updateClusterMap(seqs: Iterable[DNASequence],
+                               distanceMap: HashMap[DNASequence, Int],
+                               next: DNASequence) = synchronized {
     seqs foreach (s => {
       val dist = distance(next, s)
       val cur = distanceMap(s)
@@ -111,7 +123,7 @@ trait SeedFinder {
     })
   }
 
-  def expandStep(candidates: Iterable[DNASequence]) = {
+  protected def expandStep(candidates: Iterable[DNASequence]) = {
 
   }
 }
